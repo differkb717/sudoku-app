@@ -181,21 +181,11 @@
             }
           }
 
-          // 當出現相同數字 1 次以上時，標記為紅底色
+          // 如果發現數字出現第二次以上，標記紅底色
           if (count > 1) {
-            cell.invalid = true;  // 設置為紅底色
+            this.board[cell.row * 9 + cell.col].invalid = true;
           } else {
-            cell.invalid = false;  // 清除紅底色
-          }
-        },
-
-        undo() {
-          const last = this.history.pop();
-          if (last) {
-            const cell = this.board[last.index];
-            cell.value = last.prev;
-            cell.notes = last.prevNotes;
-            this.selectedIndex = last.index;
+            this.board[cell.row * 9 + cell.col].invalid = false;
           }
         },
 
