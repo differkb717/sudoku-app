@@ -198,6 +198,7 @@
           cell.value = correctValue.toString();
           cell.notes = [];
           cell.hint = true;
+          cell.invalid = false;
         },
         undo() {
           if (this.history.length === 0) return;
