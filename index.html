@@ -197,12 +197,15 @@
           }
           return true;
         },
+        
         giveHint() {
-          if (this.selectedIndex === null) return;
-          const correctValue = this.solution[this.board[this.selectedIndex].row][this.board[this.selectedIndex].col];
-          this.board[this.selectedIndex].value = correctValue;
-          this.board[this.selectedIndex].hint = true;  // 設置為提示
-        },
+  if (this.selectedIndex === null) return;
+  const correctValue = this.solution[this.board[this.selectedIndex].row][this.board[this.selectedIndex].col];
+  const selectedCell = this.board[this.selectedIndex];
+  selectedCell.value = correctValue;
+  selectedCell.hint = true;  // 設置提示，將背景顏色設為綠色
+  this.$forceUpdate(); // 確保更新視圖
+       },
         undo() {
           if (this.history.length === 0) return;
           const lastState = this.history.pop();
