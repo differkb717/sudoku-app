@@ -97,69 +97,118 @@
           const full = this.generateFullSudoku();
           this.solution = full.map(r => r.slice());
           const puzzle = full.map(r => r.slice());
-          const removeCount = this.difficulty==='easy'?30:this.difficulty==='medium'?40:50;
-          let cnt=0;
-          while(cnt<removeCount){ const r=Math.floor(Math.random()*9), c=Math.floor(Math.random()*9);
-            if(puzzle[r][c]!==0){ puzzle[r][c]=0; cnt++; }
+          const removeCount = this.difficulty === 'easy' ? 30 : this.difficulty === 'medium' ? 40 : 50;
+          let cnt = 0;
+          while (cnt < removeCount) {
+            const r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9);
+            if (puzzle[r][c] !== 0) { puzzle[r][c] = 0; cnt++; }
           }
           this.board = [];
-          puzzle.flat().forEach((v, idx)=>{
+          puzzle.flat().forEach((v, idx) => {
             this.board.push({
-              value: v? v.toString():'', readonly: v!==0,
-              row:Math.floor(idx/9), col:idx%9, notes:[]
+              value: v ? v.toString() : '', readonly: v !== 0,
+              row: Math.floor(idx / 9), col: idx % 9, notes: []
             });
           });
           this.selectedIndex = null;
         },
         generateFullSudoku() {
-          const board=[...Array(9)].map(_=>Array(9).fill(0));
-          const valid=(b,r,c,n)=>{ for(let i=0;i<9;i++){
-            if(b[r][i]===n||b[i][c]===n) return false;
-            const br=3*Math.floor(r/3)+Math.floor(i/3);
-            const bc=3*Math.floor(c/3)+(i%3);
-            if(b[br][bc]===n) return false;
-          } return true;};
-          const fill=(b)=>{ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(b[r][c]===0){
-              const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
-              for(const n of nums){ if(valid(b,r,c,n)){ b[r][c]=n; if(fill(b)) return true; b[r][c]=0; }}
+          const board = [...Array(9)].map(_ => Array(9).fill(0));
+          const valid = (b, r, c, n) => {
+            for (let i = 0; i < 9; i++) {
+              if (b[r][i] === n || b[i][c] === n) return false;
+              const br = 3 * Math.floor(r / 3) + Math.floor(i / 3);
+              const bc = 3 * Math.floor(c / 3) + (i % 3);
+              if (b[br][bc] === n) return false;
+            }
+            return true;
+          };
+          const fill = (b) => {
+            for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (b[r][c] === 0) {
+              const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+              for (const n of nums) {
+                if (valid(b, r, c, n)) {
+                  b[r][c] = n;
+                  if (fill(b)) return true;
+                  b[r][c] = 0;
+                }
+              }
               return false;
-          } return true;};
+            }
+            return true;
+          };
           fill(board);
           return board;
         },
-        selectCell(i){ if(!this.board[i].readonly) this.selectedIndex=i; },
-        inputNumber(n){
-          if(this.selectedIndex===null) return;
-          const cell=this.board[this.selectedIndex];
-          if(cell.readonly) return;
-          this.history.push({ index:this.selectedIndex, prev:cell.value, prevNotes:[...cell.notes] });
-          if(n===''){ cell.value=''; cell.notes=[]; return; }
-          if(this.noteMode){ const num=Number(n), notes=cell.notes;
-            cell.notes = notes.includes(num)? notes.filter(x=>x!==num): [...notes,num].sort();
-          } else { cell.value=n; cell.notes=[]; }
-           this.selectedIndex = this.selectedIndex;
+        selectCell(i) { if (!this.board[i].readonly) this.selectedIndex = i; },
+        inputNumber(n) {
+          if (this.selectedIndex === null) return;
+          const cell = this.board[this.selectedIndex];
+          if (cell.readonly) return;
+          this.history.push({ index: this.selectedIndex, prev: cell.value, prevNotes: [...cell.notes] });
+          if (n === '') { cell.value = ''; cell.notes = []; this.updateCellStyle(this.selectedIndex); return; }
+          if (this.noteMode) {
+            const num = Number(n), notes = cell.notes;
+            cell.notes = notes.includes(num) ? notes.filter(x => x !== num) : [...notes, num].sort();
+          } else { cell.value = n; cell.notes = []; }
+          this.updateCellStyle(this.selectedIndex);  // 更新格子背景顏色
         },
-        undo(){ const last=this.history.pop(); if(last){ const c=this.board[last.index]; c.value=last.prev; c.notes=last.prevNotes; this.selectedIndex=last.index; } },
-        handleKeydown(e){ if(this.selectedIndex===null) return;
-          if(/^[1-9]$/.test(e.key)) this.inputNumber(e.key);
-          else if(e.key==='Backspace'||e.key==='Delete') this.inputNumber('');
+        undo() {
+          const last = this.history.pop();
+          if (last) {
+            const c = this.board[last.index];
+            c.value = last.prev;
+            c.notes = last.prevNotes;
+            this.selectedIndex = last.index;
+          }
         },
-        isValidCell(i){ const cell=this.board[i]; if(!cell.value) return true;
-          const v=cell.value,r=cell.row,c=cell.col;
-          for(let k=0;k<9;k++){ const rc=this.board[r*9+k], cc=this.board[k*9+c];
-            const br=3*Math.floor(r/3)+Math.floor(k/3), bc=3*Math.floor(c/3)+(k%3);
-            const bcCell=this.board[br*9+bc];
-            if((rc!==cell&&rc.value===v)||(cc!==cell&&cc.value===v)||(bcCell!==cell&&bcCell.value===v)) return false;
+        handleKeydown(e) {
+          if (this.selectedIndex === null) return;
+          if (/^[1-9]$/.test(e.key)) this.inputNumber(e.key);
+          else if (e.key === 'Backspace' || e.key === 'Delete') this.inputNumber('');
+        },
+        isValidCell(i) {
+          const cell = this.board[i];
+          const value = cell.value;
+          if (!value) return true;
+          const row = cell.row, col = cell.col;
+          // 檢查行、列、3x3區塊是否重複
+          for (let i = 0; i < 9; i++) {
+            if ((i !== col && this.board[row * 9 + i].value === value) ||
+                (i !== row && this.board[i * 9 + col].value === value)) {
+              return false;
+            }
+            const r = 3 * Math.floor(row / 3) + Math.floor(i / 3);
+            const c = 3 * Math.floor(col / 3) + (i % 3);
+            if ((r !== row || c !== col) && this.board[r * 9 + c].value === value) {
+              return false;
+            }
           }
           return true;
         },
-        toggleNoteMode(){ this.noteMode=!this.noteMode; },
-        giveHint(){ if(this.selectedIndex===null) return;
-          const i=this.selectedIndex,r=Math.floor(i/9),c=i%9;
-          this.inputNumber(this.solution[r][c].toString());
+        updateCellStyle(i) {
+          const cell = this.board[i];
+          const isValid = this.isValidCell(i);  // 檢查是否有效
+          const cellElement = document.querySelectorAll('.cell')[i];
+          if (!isValid) cellElement.classList.add('invalid');
+          else cellElement.classList.remove('invalid');
+        },
+        toggleNoteMode() { this.noteMode = !this.noteMode; },
+        giveHint() {
+          if (this.selectedIndex !== null) {
+            const cell = this.board[this.selectedIndex];
+            if (cell.value === '') {
+              for (let i = 1; i <= 9; i++) {
+                if (this.isValidCell(this.selectedIndex)) {
+                  this.inputNumber(i.toString());
+                  break;
+                }
+              }
+            }
+          }
         }
       }
-    }).mount('#app');
+    }).mount("#app");
   </script>
 </body>
 </html>
