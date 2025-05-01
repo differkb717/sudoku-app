@@ -17,6 +17,7 @@
     .cell.readonly { background-color: #eee; }
     .cell.highlight { background-color: #d0f0ff; }
     .cell.invalid { background-color: #ffcccc; }
+    .cell.valid { background-color: #ccffcc; }  /* 正確標記為綠色 */
     /* 3x3 區塊粗框 */
     .cell:nth-child(3n) { border-right: 2px solid #000; }
     .cell:nth-child(n+19):nth-child(-n+27),
@@ -38,7 +39,7 @@
 <body>
   <div id="app">
     <div class="controls">
-      <label>難度：
+      <label>難度： 
         <select v-model="difficulty" @change="startGame">
           <option value="easy">簡單</option>
           <option value="medium">中等</option>
@@ -51,7 +52,7 @@
     </div>
     <div class="sudoku-board">
       <div v-for="(cell, i) in board" :key="i" class="cell"
-           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: selectedIndex===i && !isValidCell(i) } ]"
+           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: selectedIndex===i && !isValidCell(i) }, { valid: selectedIndex===i && cell.value && isValidCell(i) } ]"
            @click="selectCell(i)">
         <template v-if="cell.value">
           {{ cell.value }}
@@ -106,8 +107,7 @@
           puzzle.flat().forEach((v, idx)=>{
             this.board.push({
               value: v? v.toString():'', readonly: v!==0,
-              row:Math.floor(idx/9), col:idx%9, notes:[]
-            });
+              row:Math.floor(idx/9), col:idx%9, notes:[] });
           });
           this.selectedIndex = null;
         },
@@ -218,7 +218,7 @@
           if (key >= '1' && key <= '9') {
             this.inputNumber(key);
           } else if (key === 'Backspace' || key === 'Delete') {
-            this.inputNumber('');
+            this.inputNumber(''); 
           }
         },
 
@@ -231,9 +231,15 @@
               this.inputNumber(hint);
             }
           }
+        },
+        undo() {
+          if (this.history.length === 0) return;
+          const lastState = this.history.pop();
+          this.board[lastState.index].value = lastState.prev;
+          this.board[lastState.index].notes = lastState.prevNotes;
         }
       }
-    }).mount("#app");
+    }).mount('#app');
   </script>
 </body>
 </html>
