@@ -155,6 +155,38 @@
           } else {
             cell.invalid = false;  // 移除不合法的背景顏色
           }
+
+          // 檢查手機觸控操作的邏輯
+          if (this.isMobile) {
+            this.checkForDuplicateInRowColBlock(cell);
+          }
+        },
+
+        checkForDuplicateInRowColBlock(cell) {
+          const num = cell.value;
+          if (!num) return;
+
+          let count = 0;
+
+          // 檢查行、列及區塊中是否有相同數字
+          for (let i = 0; i < 9; i++) {
+            if (this.board[cell.row * 9 + i].value === num) count++;
+            if (this.board[i * 9 + cell.col].value === num) count++;
+          }
+
+          const br = 3 * Math.floor(cell.row / 3), bc = 3 * Math.floor(cell.col / 3);
+          for (let r = br; r < br + 3; r++) {
+            for (let c = bc; c < bc + 3; c++) {
+              if (this.board[r * 9 + c].value === num) count++;
+            }
+          }
+
+          // 超過1次的標記為紅色背景
+          if (count > 1) {
+            cell.invalid = true;  // 設置為紅底色
+          } else {
+            cell.invalid = false;  // 清除紅底色
+          }
         },
 
         undo() {
@@ -196,7 +228,7 @@
           this.inputNumber(this.solution[r][c].toString());
         }
       }
-    }).mount('#app');
+    }).mount("#app");
   </script>
 </body>
 </html>
