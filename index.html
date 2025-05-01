@@ -17,14 +17,7 @@
     .cell.readonly { background-color: #eee; }
     .cell.highlight { background-color: #d0f0ff; }
     .cell.invalid { background-color: #ffcccc; }
-    /* 3x3 區塊粗框 */
-    .cell:nth-child(3n) { border-right: 2px solid #000; }
-    .cell:nth-child(n+19):nth-child(-n+27),
-    .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #000; }
-    .cell:nth-child(1), .cell:nth-child(4), .cell:nth-child(7),
-    .cell:nth-child(28), .cell:nth-child(31), .cell:nth-child(34),
-    .cell:nth-child(55), .cell:nth-child(58), .cell:nth-child(61) { border-left: 2px solid #000; }
-    .cell:nth-child(n+1):nth-child(-n+9) { border-top: 2px solid #000; }
+    .cell.duplicate { background-color: #f4cccc; } /* Highlight for duplicates */
     .notes {
       display: grid; grid-template-columns: repeat(3, 1fr);
       font-size: 10px; line-height: 12px; width:100%; height:100%;
@@ -51,7 +44,7 @@
     </div>
     <div class="sudoku-board">
       <div v-for="(cell, i) in board" :key="i" class="cell"
-           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: selectedIndex===i && !isValidCell(i) } ]"
+           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: selectedIndex===i && !isValidCell(i) }, { duplicate: hasDuplicate(i) } ]"
            @click="selectCell(i)">
         <template v-if="cell.value">
           {{ cell.value }}
@@ -63,7 +56,6 @@
         </template>
       </div>
     </div>
-    <!-- 手機數字面板 + 清除 + 復原按鈕 -->
     <div v-if="isMobile && selectedIndex!==null" class="input-panel-mobile">
       <button v-for="n in 9" :key="n" @click="inputNumber(n)">{{ n }}</button>
       <button @click="inputNumber('')">清除</button>
@@ -84,50 +76,63 @@
       mounted() {
         this.isMobile = /Mobi|Android/i.test(navigator.userAgent);
         this.startGame();
-        // 全域鍵盤監聽
         window.addEventListener('keydown', this.handleKeydown);
       },
       beforeUnmount() {
         window.removeEventListener('keydown', this.handleKeydown);
       },
       methods: {
-        // 開始或重置遊戲
         startGame() {
           this.history = [];
           const full = this.generateFullSudoku();
           this.solution = full.map(r => r.slice());
           const puzzle = full.map(r => r.slice());
-          const removeCount = this.difficulty==='easy'?30:this.difficulty==='medium'?40:50;
-          let cnt=0;
-          while(cnt<removeCount){ const r=Math.floor(Math.random()*9), c=Math.floor(Math.random()*9);
-            if(puzzle[r][c]!==0){ puzzle[r][c]=0; cnt++; }
+          const removeCount = this.difficulty === 'easy' ? 30 : this.difficulty === 'medium' ? 40 : 50;
+          let cnt = 0;
+          while (cnt < removeCount) {
+            const r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9);
+            if (puzzle[r][c] !== 0) { puzzle[r][c] = 0; cnt++; }
           }
           this.board = [];
-          puzzle.flat().forEach((v, idx)=>{
+          puzzle.flat().forEach((v, idx) => {
             this.board.push({
-              value: v? v.toString():'', readonly: v!==0,
-              row:Math.floor(idx/9), col:idx%9, notes:[]
+              value: v ? v.toString() : '', readonly: v !== 0,
+              row: Math.floor(idx / 9), col: idx % 9, notes: []
             });
           });
           this.selectedIndex = null;
         },
         generateFullSudoku() {
-          const board=[...Array(9)].map(_=>Array(9).fill(0));
-          const valid=(b,r,c,n)=>{ for(let i=0;i<9;i++){
-            if(b[r][i]===n||b[i][c]===n) return false;
-            const br=3*Math.floor(r/3)+Math.floor(i/3);
-            const bc=3*Math.floor(c/3)+(i%3);
-            if(b[br][bc]===n) return false;
-          } return true;};
-          const fill=(b)=>{ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(b[r][c]===0){
-              const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
-              for(const n of nums){ if(valid(b,r,c,n)){ b[r][c]=n; if(fill(b)) return true; b[r][c]=0; }}
+          const board = [...Array(9)].map(_ => Array(9).fill(0));
+          const valid = (b, r, c, n) => {
+            for (let i = 0; i < 9; i++) {
+              if (b[r][i] === n || b[i][c] === n) return false;
+              const br = 3 * Math.floor(r / 3) + Math.floor(i / 3);
+              const bc = 3 * Math.floor(c / 3) + (i % 3);
+              if (b[br][bc] === n) return false;
+            }
+            return true;
+          };
+          const fill = (b) => {
+            for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (b[r][c] === 0) {
+              const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+              for (const n of nums) {
+                if (valid(b, r, c, n)) {
+                  b[r][c] = n;
+                  if (fill(b)) return true;
+                  b[r][c] = 0;
+                }
+              }
               return false;
-          } return true;};
+            }
+            return true;
+          };
           fill(board);
           return board;
         },
-        selectCell(i){ if(!this.board[i].readonly) this.selectedIndex=i; },
+        selectCell(i) {
+          if (!this.board[i].readonly) this.selectedIndex = i;
+        },
 
         inputNumber(n) {
           if (this.selectedIndex === null) return;
@@ -149,11 +154,11 @@
             }
           }
 
-          // 檢查數字是否合法並更新背景顏色
+          // Check if number is valid
           if (!this.isValidCell(this.selectedIndex)) {
-            cell.invalid = true;  // 設置不合法的背景顏色
+            cell.invalid = true;
           } else {
-            cell.invalid = false;  // 移除不合法的背景顏色
+            cell.invalid = false;
           }
         },
 
@@ -186,6 +191,24 @@
             }
           }
           return true;
+        },
+
+        hasDuplicate(i) {
+          const cell = this.board[i];
+          if (!cell.value) return false;
+          const v = cell.value;
+          const r = cell.row, c = cell.col;
+
+          // Check for duplicates in the row, column, and 3x3 block
+          const rowDuplicates = this.board.filter((_, idx) => Math.floor(idx / 9) === r && this.board[idx].value === v).length;
+          const colDuplicates = this.board.filter((_, idx) => idx % 9 === c && this.board[idx].value === v).length;
+          const blockDuplicates = this.board.filter((_, idx) => {
+            const br = Math.floor(r / 3) * 3 + Math.floor(idx / 3);
+            const bc = Math.floor(c / 3) * 3 + idx % 3;
+            return br === Math.floor(idx / 9) && bc === idx % 9 && this.board[idx].value === v;
+          }).length;
+
+          return rowDuplicates > 1 || colDuplicates > 1 || blockDuplicates > 1;
         },
 
         toggleNoteMode() { this.noteMode = !this.noteMode; },
