@@ -63,10 +63,11 @@
         </template>
       </div>
     </div>
-    <!-- 手機數字面板 + 清除按鈕 -->
+    <!-- 手機數字面板 + 清除 + 復原按鈕 -->
     <div v-if="isMobile && selectedIndex!==null" class="input-panel-mobile">
       <button v-for="n in 9" :key="n" @click="inputNumber(n)">{{ n }}</button>
       <button @click="inputNumber('')">清除</button>
+      <button @click="undo">復原</button>
     </div>
   </div>
   <script src="https://unpkg.com/vue@3"></script>
