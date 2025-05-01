@@ -18,7 +18,7 @@
     .cell.highlight { background-color: #d0f0ff; }
     .cell.invalid { background-color: #ffcccc; }
     .cell.valid { background-color: #ccffcc; }
-    .cell.hint { background-color: #ccffcc; }  /* 綠色背景提示 */
+    .cell.hint { background-color: #ccffcc; }
     .cell:nth-child(3n) { border-right: 2px solid #000; }
     .cell:nth-child(n+19):nth-child(-n+27),
     .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #000; }
@@ -49,10 +49,13 @@
       <button @click="startGame">開始新遊戲</button>
       <button @click="toggleNoteMode">筆記模式：{{ noteMode ? '開' : '關' }}</button>
       <button @click="giveHint">提示</button>
+      <button @click="undo">復原</button>
     </div>
     <div class="sudoku-board">
-      <div v-for="(cell, i) in board" :key="i" class="cell"
-           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: selectedIndex===i && !isValidCell(i) }, { valid: selectedIndex===i && cell.value && isValidCell(i) }, { hint: cell.hint }]">
+      <div v-for="(cell, i) in board" :key="i"
+           class="cell"
+           @click="selectCell(i)"
+           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: cell.invalid }, { valid: selectedIndex===i && cell.value && isValidCell(i) }, { hint: cell.hint }]">
         <template v-if="cell.value">
           {{ cell.value }}
         </template>
@@ -63,15 +66,15 @@
         </template>
       </div>
     </div>
-    <div v-if="isMobile && selectedIndex!==null" class="input-panel-mobile">
+    <div v-if="isMobile && selectedIndex !== null" class="input-panel-mobile">
       <button v-for="n in 9" :key="n" @click="inputNumber(n)">{{ n }}</button>
       <button @click="inputNumber('')">清除</button>
-      <button @click="undo">復原</button>
     </div>
   </div>
+
   <script src="https://unpkg.com/vue@3"></script>
   <script>
-    const { createApp, onMounted, onBeforeUnmount } = Vue;
+    const { createApp } = Vue;
     createApp({
       data() {
         return {
@@ -94,36 +97,56 @@
           const full = this.generateFullSudoku();
           this.solution = full.map(r => r.slice());
           const puzzle = full.map(r => r.slice());
-          const removeCount = this.difficulty==='easy'?30:this.difficulty==='medium'?40:50;
-          let cnt=0;
-          while(cnt<removeCount){ const r=Math.floor(Math.random()*9), c=Math.floor(Math.random()*9);
-            if(puzzle[r][c]!==0){ puzzle[r][c]=0; cnt++; }
+          const removeCount = this.difficulty === 'easy' ? 30 : this.difficulty === 'medium' ? 40 : 50;
+          let cnt = 0;
+          while (cnt < removeCount) {
+            const r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9);
+            if (puzzle[r][c] !== 0) { puzzle[r][c] = 0; cnt++; }
           }
           this.board = [];
-          puzzle.flat().forEach((v, idx)=>{
+          puzzle.flat().forEach((v, idx) => {
             this.board.push({
-              value: v? v.toString():'', readonly: v!==0,
-              row:Math.floor(idx/9), col:idx%9, notes:[], hint: false });
+              value: v ? v.toString() : '', readonly: v !== 0,
+              row: Math.floor(idx / 9), col: idx % 9, notes: [], hint: false, invalid: false
+            });
           });
           this.selectedIndex = null;
         },
         generateFullSudoku() {
-          const board=[...Array(9)].map(_=>Array(9).fill(0));
-          const valid=(b,r,c,n)=>{ for(let i=0;i<9;i++){
-            if(b[r][i]===n||b[i][c]===n) return false;
-            const br=3*Math.floor(r/3)+Math.floor(i/3);
-            const bc=3*Math.floor(c/3)+(i%3);
-            if(b[br][bc]===n) return false;
-          } return true;};
-          const fill=(b)=>{ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(b[r][c]===0){
-              const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
-              for(const n of nums){ if(valid(b,r,c,n)){ b[r][c]=n; if(fill(b)) return true; b[r][c]=0; }}
-              return false;
-          } return true;};
+          const board = [...Array(9)].map(_ => Array(9).fill(0));
+          const valid = (b, r, c, n) => {
+            for (let i = 0; i < 9; i++) {
+              if (b[r][i] === n || b[i][c] === n) return false;
+              const br = 3 * Math.floor(r / 3) + Math.floor(i / 3);
+              const bc = 3 * Math.floor(c / 3) + (i % 3);
+              if (b[br][bc] === n) return false;
+            }
+            return true;
+          };
+          const fill = (b) => {
+            for (let r = 0; r < 9; r++) {
+              for (let c = 0; c < 9; c++) {
+                if (b[r][c] === 0) {
+                  const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+                  for (const n of nums) {
+                    if (valid(b, r, c, n)) {
+                      b[r][c] = n;
+                      if (fill(b)) return true;
+                      b[r][c] = 0;
+                    }
+                  }
+                  return false;
+                }
+              }
+            }
+            return true;
+          };
           fill(board);
           return board;
         },
-        selectCell(i){ if(!this.board[i].readonly) this.selectedIndex=i; },
+        selectCell(i) {
+          if (!this.board[i].readonly) this.selectedIndex = i;
+        },
         inputNumber(n) {
           if (this.selectedIndex === null) return;
           const cell = this.board[this.selectedIndex];
@@ -139,77 +162,54 @@
               const num = Number(n), notes = cell.notes;
               cell.notes = notes.includes(num) ? notes.filter(x => x !== num) : [...notes, num].sort();
             } else {
-              cell.value = n;
+              cell.value = n.toString();
               cell.notes = [];
             }
           }
 
-          if (!this.isValidCell(this.selectedIndex)) {
-            cell.invalid = true; 
-          } else {
-            cell.invalid = false; 
-          }
-
-          if (this.isMobile) {
-            this.checkForDuplicateInRowColBlock(cell);
-          }
-        },
-        checkForDuplicateInRowColBlock(cell) {
-          const num = cell.value;
-          if (!num) return;
-
-          let count = 0;
-
-          for (let i = 0; i < 9; i++) {
-            if (this.board[cell.row * 9 + i].value === num) count++;
-            if (this.board[i * 9 + cell.col].value === num) count++;
-          }
-
-          const br = 3 * Math.floor(cell.row / 3), bc = 3 * Math.floor(cell.col / 3);
-          for (let r = br; r < br + 3; r++) {
-            for (let c = bc; c < bc + 3; c++) {
-              if (this.board[r * 9 + c].value === num) count++;
-            }
-          }
-
-          if (count > 1) {
-            this.board[cell.row * 9 + cell.col].invalid = true;
-          } else {
-            this.board[cell.row * 9 + cell.col].invalid = false;
-          }
+          cell.invalid = !this.isValidCell(this.selectedIndex);
         },
         isValidCell(i) {
           const cell = this.board[i];
-          return this.checkValid(cell, cell.row, cell.col, cell.value);
+          return this.checkValid(cell.row, cell.col, cell.value, i);
         },
-        checkValid(cell, row, col, value) {
+        checkValid(row, col, value, idx) {
           if (!value) return true;
           for (let i = 0; i < 9; i++) {
-            if ((i !== col && this.board[row * 9 + i].value === value) || 
-                (i !== row && this.board[i * 9 + col].value === value)) return false;
+            if (i !== col && this.board[row * 9 + i].value === value) return false;
+            if (i !== row && this.board[i * 9 + col].value === value) return false;
           }
-
           const br = 3 * Math.floor(row / 3), bc = 3 * Math.floor(col / 3);
           for (let r = br; r < br + 3; r++) {
             for (let c = bc; c < bc + 3; c++) {
-              if (this.board[r * 9 + c].value === value) return false;
+              const idx2 = r * 9 + c;
+              if (idx2 !== idx && this.board[idx2].value === value) return false;
             }
           }
           return true;
         },
-        
+        toggleNoteMode() {
+          this.noteMode = !this.noteMode;
+        },
         giveHint() {
-  if (this.selectedIndex === null) return;
-  const correctValue = this.solution[this.board[this.selectedIndex].row][this.board[this.selectedIndex].col];
-  const selectedCell = this.board[this.selectedIndex];
-          this.board[this.selectedIndex].value = correctValue;
-          this.board[this.selectedIndex].hint = true;  // 設置為提示
-       },
+          if (this.selectedIndex === null) return;
+          const cell = this.board[this.selectedIndex];
+          const correctValue = this.solution[cell.row][cell.col];
+          cell.value = correctValue.toString();
+          cell.notes = [];
+          cell.hint = true;
+        },
         undo() {
           if (this.history.length === 0) return;
-          const lastState = this.history.pop();
-          this.board[lastState.index].value = lastState.prev;
-          this.board[lastState.index].notes = lastState.prevNotes;
+          const last = this.history.pop();
+          const cell = this.board[last.index];
+          cell.value = last.prev;
+          cell.notes = last.prevNotes;
+        },
+        handleKeydown(e) {
+          if (this.selectedIndex === null) return;
+          if (e.key >= '1' && e.key <= '9') this.inputNumber(parseInt(e.key));
+          if (e.key === 'Backspace' || e.key === 'Delete') this.inputNumber('');
         }
       }
     }).mount('#app');
