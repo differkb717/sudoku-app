@@ -63,11 +63,10 @@
         </template>
       </div>
     </div>
-    <!-- 手機數字面板 + 清除 + 復原按鈕 -->
+    <!-- 手機數字面板 + 清除按鈕 -->
     <div v-if="isMobile && selectedIndex!==null" class="input-panel-mobile">
       <button v-for="n in 9" :key="n" @click="inputNumber(n)">{{ n }}</button>
       <button @click="inputNumber('')">清除</button>
-      <button @click="undo">復原</button>
     </div>
   </div>
   <script src="https://unpkg.com/vue@3"></script>
@@ -181,7 +180,7 @@
             }
           }
 
-          // 如果發現數字出現第二次以上，標記紅底色
+          // 如果發現數字出現第1次以上，標記紅底色
           if (count > 1) {
             this.board[cell.row * 9 + cell.col].invalid = true;
           } else {
