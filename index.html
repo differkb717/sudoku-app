@@ -164,38 +164,36 @@
         },
         handleKeydown(e) {
           if (this.selectedIndex === null) return;
-          if (/^[1-9]$/.test(e.key)) this.inputNumber(e.key);
-          else if (e.key === 'Backspace' || e.key === 'Delete') this.inputNumber('');
+          if (e.key >= '1' && e.key <= '9') this.inputNumber(e.key);
+          if (e.key === 'Backspace' || e.key === 'Delete') this.inputNumber('');
         },
         isValidCell(i) {
           const cell = this.board[i];
           const value = cell.value;
-          if (!value) return true;
-          const row = cell.row, col = cell.col;
-          let count = 0;
+          if (value === '') return true;
 
-          // 檢查同一行、列、區域是否有重複的數字
           // 檢查行
-          for (let c = 0; c < 9; c++) {
-            if (this.board[row * 9 + c].value === value) count++;
+          const row = cell.row;
+          for (let col = 0; col < 9; col++) {
+            if (this.board[row * 9 + col].value === value && col !== cell.col) return false;
           }
 
           // 檢查列
-          for (let r = 0; r < 9; r++) {
-            if (this.board[r * 9 + col].value === value) count++;
+          const col = cell.col;
+          for (let row = 0; row < 9; row++) {
+            if (this.board[row * 9 + col].value === value && row !== cell.row) return false;
           }
 
           // 檢查區域
-          const boxRow = Math.floor(row / 3) * 3;
-          const boxCol = Math.floor(col / 3) * 3;
+          const boxRow = Math.floor(cell.row / 3) * 3;
+          const boxCol = Math.floor(cell.col / 3) * 3;
           for (let r = boxRow; r < boxRow + 3; r++) {
             for (let c = boxCol; c < boxCol + 3; c++) {
-              if (this.board[r * 9 + c].value === value) count++;
+              if (this.board[r * 9 + c].value === value && (r !== cell.row || c !== cell.col)) return false;
             }
           }
 
-          // 第二次或以後輸入相同數字時顯示紅色背景
-          return count < 2;
+          return true;
         },
         updateCellStyle(i) {
           const cell = this.board[i];
