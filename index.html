@@ -17,7 +17,8 @@
     .cell.readonly { background-color: #eee; }
     .cell.highlight { background-color: #d0f0ff; }
     .cell.invalid { background-color: #ffcccc; }
-    /* 3x3 區塊粗框 */
+    .cell.valid { background-color: #ccffcc; }
+    .cell.hint { background-color: #ccffcc; }
     .cell:nth-child(3n) { border-right: 2px solid #000; }
     .cell:nth-child(n+19):nth-child(-n+27),
     .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #000; }
@@ -38,7 +39,7 @@
 <body>
   <div id="app">
     <div class="controls">
-      <label>難度：
+      <label>難度： 
         <select v-model="difficulty" @change="startGame">
           <option value="easy">簡單</option>
           <option value="medium">中等</option>
@@ -48,11 +49,13 @@
       <button @click="startGame">開始新遊戲</button>
       <button @click="toggleNoteMode">筆記模式：{{ noteMode ? '開' : '關' }}</button>
       <button @click="giveHint">提示</button>
+      <button @click="undo">復原</button>
     </div>
     <div class="sudoku-board">
-      <div v-for="(cell, i) in board" :key="i" class="cell"
-           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: selectedIndex===i && !isValidCell(i) } ]"
-           @click="selectCell(i)">
+      <div v-for="(cell, i) in board" :key="i"
+           class="cell"
+           @click="selectCell(i)"
+           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: cell.invalid }, { valid: selectedIndex===i && cell.value && isValidCell(i) }, { hint: cell.hint }]">
         <template v-if="cell.value">
           {{ cell.value }}
         </template>
@@ -63,16 +66,15 @@
         </template>
       </div>
     </div>
-    <!-- 手機數字面板 + 清除 + 復原按鈕 -->
-    <div v-if="isMobile && selectedIndex!==null" class="input-panel-mobile">
+    <div v-if="isMobile && selectedIndex !== null" class="input-panel-mobile">
       <button v-for="n in 9" :key="n" @click="inputNumber(n)">{{ n }}</button>
       <button @click="inputNumber('')">清除</button>
-      <button @click="undo">復原</button>
     </div>
   </div>
+
   <script src="https://unpkg.com/vue@3"></script>
   <script>
-    const { createApp, onMounted, onBeforeUnmount } = Vue;
+    const { createApp } = Vue;
     createApp({
       data() {
         return {
@@ -84,51 +86,67 @@
       mounted() {
         this.isMobile = /Mobi|Android/i.test(navigator.userAgent);
         this.startGame();
-        // 全域鍵盤監聽
         window.addEventListener('keydown', this.handleKeydown);
       },
       beforeUnmount() {
         window.removeEventListener('keydown', this.handleKeydown);
       },
       methods: {
-        // 開始或重置遊戲
         startGame() {
           this.history = [];
           const full = this.generateFullSudoku();
           this.solution = full.map(r => r.slice());
           const puzzle = full.map(r => r.slice());
-          const removeCount = this.difficulty==='easy'?30:this.difficulty==='medium'?40:50;
-          let cnt=0;
-          while(cnt<removeCount){ const r=Math.floor(Math.random()*9), c=Math.floor(Math.random()*9);
-            if(puzzle[r][c]!==0){ puzzle[r][c]=0; cnt++; }
+          const removeCount = this.difficulty === 'easy' ? 30 : this.difficulty === 'medium' ? 40 : 50;
+          let cnt = 0;
+          while (cnt < removeCount) {
+            const r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9);
+            if (puzzle[r][c] !== 0) { puzzle[r][c] = 0; cnt++; }
           }
           this.board = [];
-          puzzle.flat().forEach((v, idx)=>{
+          puzzle.flat().forEach((v, idx) => {
             this.board.push({
-              value: v? v.toString():'', readonly: v!==0,
-              row:Math.floor(idx/9), col:idx%9, notes:[]
+              value: v ? v.toString() : '', readonly: v !== 0,
+              row: Math.floor(idx / 9), col: idx % 9, notes: [], hint: false, invalid: false
             });
           });
           this.selectedIndex = null;
         },
         generateFullSudoku() {
-          const board=[...Array(9)].map(_=>Array(9).fill(0));
-          const valid=(b,r,c,n)=>{ for(let i=0;i<9;i++){
-            if(b[r][i]===n||b[i][c]===n) return false;
-            const br=3*Math.floor(r/3)+Math.floor(i/3);
-            const bc=3*Math.floor(c/3)+(i%3);
-            if(b[br][bc]===n) return false;
-          } return true;};
-          const fill=(b)=>{ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(b[r][c]===0){
-              const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
-              for(const n of nums){ if(valid(b,r,c,n)){ b[r][c]=n; if(fill(b)) return true; b[r][c]=0; }}
-              return false;
-          } return true;};
+          const board = [...Array(9)].map(_ => Array(9).fill(0));
+          const valid = (b, r, c, n) => {
+            for (let i = 0; i < 9; i++) {
+              if (b[r][i] === n || b[i][c] === n) return false;
+              const br = 3 * Math.floor(r / 3) + Math.floor(i / 3);
+              const bc = 3 * Math.floor(c / 3) + (i % 3);
+              if (b[br][bc] === n) return false;
+            }
+            return true;
+          };
+          const fill = (b) => {
+            for (let r = 0; r < 9; r++) {
+              for (let c = 0; c < 9; c++) {
+                if (b[r][c] === 0) {
+                  const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+                  for (const n of nums) {
+                    if (valid(b, r, c, n)) {
+                      b[r][c] = n;
+                      if (fill(b)) return true;
+                      b[r][c] = 0;
+                    }
+                  }
+                  return false;
+                }
+              }
+            }
+            return true;
+          };
           fill(board);
           return board;
         },
-        selectCell(i){ if(!this.board[i].readonly) this.selectedIndex=i; },
-
+        selectCell(i) {
+          if (!this.board[i].readonly) this.selectedIndex = i;
+        },
         inputNumber(n) {
           if (this.selectedIndex === null) return;
           const cell = this.board[this.selectedIndex];
@@ -144,96 +162,57 @@
               const num = Number(n), notes = cell.notes;
               cell.notes = notes.includes(num) ? notes.filter(x => x !== num) : [...notes, num].sort();
             } else {
-              cell.value = n;
+              cell.value = n.toString();
               cell.notes = [];
             }
           }
 
-          // 檢查數字是否合法並更新背景顏色
-          if (!this.isValidCell(this.selectedIndex)) {
-            cell.invalid = true;  // 設置不合法的背景顏色
-          } else {
-            cell.invalid = false;  // 移除不合法的背景顏色
-          }
-
-          // 檢查手機觸控操作的邏輯
-          if (this.isMobile) {
-            this.checkForDuplicateInRowColBlock(cell);
-          }
+          cell.invalid = !this.isValidCell(this.selectedIndex);
         },
-
-        checkForDuplicateInRowColBlock(cell) {
-          const num = cell.value;
-          if (!num) return;
-
-          let count = 0;
-
-          // 檢查行、列及區塊中是否有相同數字
-          for (let i = 0; i < 9; i++) {
-            if (this.board[cell.row * 9 + i].value === num) count++;
-            if (this.board[i * 9 + cell.col].value === num) count++;
-          }
-
-          const br = 3 * Math.floor(cell.row / 3), bc = 3 * Math.floor(cell.col / 3);
-          for (let r = br; r < br + 3; r++) {
-            for (let c = bc; c < bc + 3; c++) {
-              if (this.board[r * 9 + c].value === num) count++;
-            }
-          }
-
-          // 如果發現數字出現第1次以上，標記紅底色
-          if (count > 1) {
-            this.board[cell.row * 9 + cell.col].invalid = true;
-          } else {
-            this.board[cell.row * 9 + cell.col].invalid = false;
-          }
-        },
-
         isValidCell(i) {
           const cell = this.board[i];
-          return this.checkValid(cell, cell.row, cell.col, cell.value);
+          return this.checkValid(cell.row, cell.col, cell.value, i);
         },
-
-        checkValid(cell, row, col, value) {
+        checkValid(row, col, value, idx) {
           if (!value) return true;
           for (let i = 0; i < 9; i++) {
-            if (this.board[row * 9 + i].value === value || this.board[i * 9 + col].value === value) return false;
+            if (i !== col && this.board[row * 9 + i].value === value) return false;
+            if (i !== row && this.board[i * 9 + col].value === value) return false;
           }
-
           const br = 3 * Math.floor(row / 3), bc = 3 * Math.floor(col / 3);
           for (let r = br; r < br + 3; r++) {
             for (let c = bc; c < bc + 3; c++) {
-              if (this.board[r * 9 + c].value === value) return false;
+              const idx2 = r * 9 + c;
+              if (idx2 !== idx && this.board[idx2].value === value) return false;
             }
           }
           return true;
         },
-
-        handleKeydown(event) {
+        toggleNoteMode() {
+          this.noteMode = !this.noteMode;
+        },
+        giveHint() {
           if (this.selectedIndex === null) return;
           const cell = this.board[this.selectedIndex];
-          if (cell.readonly) return;
-
-          const key = event.key;
-          if (key >= '1' && key <= '9') {
-            this.inputNumber(key);
-          } else if (key === 'Backspace' || key === 'Delete') {
-            this.inputNumber('');
-          }
+          const correctValue = this.solution[cell.row][cell.col];
+          cell.value = correctValue.toString();
+          cell.notes = [];
+          cell.hint = true;
         },
-
-        toggleNoteMode() { this.noteMode = !this.noteMode; },
-        giveHint() {
-          if (this.selectedIndex !== null) {
-            const cell = this.board[this.selectedIndex];
-            if (!cell.readonly) {
-              const hint = this.solution[cell.row][cell.col];
-              this.inputNumber(hint);
-            }
-          }
+        undo() {
+          if (this.history.length === 0) return;
+          const last = this.history.pop();
+          const cell = this.board[last.index];
+          cell.value = last.prev;
+          cell.notes = last.prevNotes;
+        },
+        handleKeydown(e) {
+          if (this.selectedIndex === null) return;
+          if (e.key >= '1' && e.key <= '9') this.inputNumber(parseInt(e.key));
+          if (e.key === 'Backspace' || e.key === 'Delete') this.inputNumber('');
         }
       }
-    }).mount("#app");
+    }).mount('#app');
   </script>
 </body>
 </html>
