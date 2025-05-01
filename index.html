@@ -137,6 +137,7 @@
           if(this.noteMode){ const num=Number(n), notes=cell.notes;
             cell.notes = notes.includes(num)? notes.filter(x=>x!==num): [...notes,num].sort();
           } else { cell.value=n; cell.notes=[]; }
+           this.selectedIndex = this.selectedIndex;
         },
         undo(){ const last=this.history.pop(); if(last){ const c=this.board[last.index]; c.value=last.prev; c.notes=last.prevNotes; this.selectedIndex=last.index; } },
         handleKeydown(e){ if(this.selectedIndex===null) return;
