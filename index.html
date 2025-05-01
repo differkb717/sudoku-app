@@ -181,7 +181,7 @@
             }
           }
 
-          // 超過1次的標記為紅色背景
+          // 當出現相同數字 1 次以上時，標記為紅底色
           if (count > 1) {
             cell.invalid = true;  // 設置為紅底色
           } else {
@@ -192,40 +192,55 @@
         undo() {
           const last = this.history.pop();
           if (last) {
-            const c = this.board[last.index];
-            c.value = last.prev;
-            c.notes = last.prevNotes;
+            const cell = this.board[last.index];
+            cell.value = last.prev;
+            cell.notes = last.prevNotes;
             this.selectedIndex = last.index;
           }
         },
 
-        handleKeydown(e) {
-          if (this.selectedIndex === null) return;
-          if (/^[1-9]$/.test(e.key)) this.inputNumber(e.key);
-          else if (e.key === 'Backspace' || e.key === 'Delete') this.inputNumber('');
-        },
-
         isValidCell(i) {
           const cell = this.board[i];
-          if (!cell.value) return true;
-          const v = cell.value, r = cell.row, c = cell.col;
-          for (let k = 0; k < 9; k++) {
-            const rc = this.board[r * 9 + k], cc = this.board[k * 9 + c];
-            const br = 3 * Math.floor(r / 3) + Math.floor(k / 3), bc = 3 * Math.floor(c / 3) + (k % 3);
-            const bcCell = this.board[br * 9 + bc];
-            if ((rc !== cell && rc.value === v) || (cc !== cell && cc.value === v) || (bcCell !== cell && bcCell.value === v)) {
-              return false;
+          return this.checkValid(cell, cell.row, cell.col, cell.value);
+        },
+
+        checkValid(cell, row, col, value) {
+          if (!value) return true;
+          for (let i = 0; i < 9; i++) {
+            if (this.board[row * 9 + i].value === value || this.board[i * 9 + col].value === value) return false;
+          }
+
+          const br = 3 * Math.floor(row / 3), bc = 3 * Math.floor(col / 3);
+          for (let r = br; r < br + 3; r++) {
+            for (let c = bc; c < bc + 3; c++) {
+              if (this.board[r * 9 + c].value === value) return false;
             }
           }
           return true;
         },
 
-        toggleNoteMode() { this.noteMode = !this.noteMode; },
-
-        giveHint() {
+        handleKeydown(event) {
           if (this.selectedIndex === null) return;
-          const i = this.selectedIndex, r = Math.floor(i / 9), c = i % 9;
-          this.inputNumber(this.solution[r][c].toString());
+          const cell = this.board[this.selectedIndex];
+          if (cell.readonly) return;
+
+          const key = event.key;
+          if (key >= '1' && key <= '9') {
+            this.inputNumber(key);
+          } else if (key === 'Backspace' || key === 'Delete') {
+            this.inputNumber('');
+          }
+        },
+
+        toggleNoteMode() { this.noteMode = !this.noteMode; },
+        giveHint() {
+          if (this.selectedIndex !== null) {
+            const cell = this.board[this.selectedIndex];
+            if (!cell.readonly) {
+              const hint = this.solution[cell.row][cell.col];
+              this.inputNumber(hint);
+            }
+          }
         }
       }
     }).mount("#app");
