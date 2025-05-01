@@ -17,8 +17,8 @@
     .cell.readonly { background-color: #eee; }
     .cell.highlight { background-color: #d0f0ff; }
     .cell.invalid { background-color: #ffcccc; }
-    .cell.valid { background-color: #ccffcc; }  /* 正確標記為綠色 */
-    .cell.hint { background-color: #ccffcc; }  /* 提示標記為綠色背景 */
+    .cell.valid { background-color: #ccffcc; }
+    .cell.hint { background-color: #ccffcc; }  /* 綠色背景提示 */
     .cell:nth-child(3n) { border-right: 2px solid #000; }
     .cell:nth-child(n+19):nth-child(-n+27),
     .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #000; }
@@ -201,7 +201,7 @@
           if (this.selectedIndex === null) return;
           const correctValue = this.solution[this.board[this.selectedIndex].row][this.board[this.selectedIndex].col];
           this.board[this.selectedIndex].value = correctValue;
-          this.board[this.selectedIndex].hint = true;
+          this.board[this.selectedIndex].hint = true;  // 設置為提示
         },
         undo() {
           if (this.history.length === 0) return;
