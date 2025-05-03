@@ -200,6 +200,7 @@
           return this.board.every(cell => cell.value && !cell.invalid);
         },
         validateBoard() {
+          this.errorCount = 0;
           this.board.forEach((c, i) => {
             if (c.value && c.value !== this.solution[c.row][c.col].toString()) {
               c.invalid = true;
