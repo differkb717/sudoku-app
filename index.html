@@ -96,7 +96,6 @@
       methods: {
         startGame() {
           this.history = [];
-          this.mistakes = 0; 
           this.errorCount = 0;
           const full = this.generateFullSudoku();
           this.solution = full.map(r => r.slice());
