@@ -225,7 +225,7 @@
           }, 2000);
           this.validateBoard();
           if (this.isComplete()) {
-            alert('恭喜完成數獨！');
+            setTimeout(() => alert('恭喜完成數獨！'), 10);
           }
         }
       }
@@ -233,3 +233,4 @@
   </script>
 </body>
 </html>
+
