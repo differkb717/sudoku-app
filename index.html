@@ -5,14 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>數獨遊戲</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
-    .controls { margin-bottom: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-    .controls button, .controls select { font-size: 14px; padding: 5px 10px; }
-    .sudoku-board { display: grid; grid-template-columns: repeat(9, 40px); grid-gap: 1px; justify-content: center; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    .controls {
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 5px;
+    }
+    .controls button,
+    .controls select {
+      font-size: 14px;
+      padding: 5px 10px;
+    }
+    .sudoku-board {
+      display: grid;
+      grid-template-columns: repeat(9, 40px);
+      grid-gap: 1px;
+      justify-content: center;
+    }
     .cell {
-      width: 40px; height: 40px; line-height: 40px;
-      text-align: center; font-size: 18px; border: 1px solid #ccc;
-      position: relative; user-select: none;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      font-size: 18px;
+      border: 1px solid #ccc;
+      position: relative;
+      user-select: none;
     }
     .cell.readonly { background-color: #eee; }
     .cell.highlight { background-color: #d0f0ff; }
@@ -23,18 +47,45 @@
     .cell:nth-child(3n) { border-right: 2px solid #000; }
     .cell:nth-child(n+19):nth-child(-n+27),
     .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #000; }
-    .cell:nth-child(1), .cell:nth-child(4), .cell:nth-child(7),
-    .cell:nth-child(28), .cell:nth-child(31), .cell:nth-child(34),
-    .cell:nth-child(55), .cell:nth-child(58), .cell:nth-child(61) { border-left: 2px solid #000; }
+    .cell:nth-child(1),
+    .cell:nth-child(4),
+    .cell:nth-child(7),
+    .cell:nth-child(28),
+    .cell:nth-child(31),
+    .cell:nth-child(34),
+    .cell:nth-child(55),
+    .cell:nth-child(58),
+    .cell:nth-child(61) { border-left: 2px solid #000; }
     .cell:nth-child(n+1):nth-child(-n+9) { border-top: 2px solid #000; }
     .notes {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      font-size: 10px; line-height: 12px; width:100%; height:100%;
-      position: absolute; top:0; left:0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      font-size: 10px;
+      line-height: 12px;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
-    .notes span { display: flex; align-items: center; justify-content: center; color: #888; }
-    .input-panel-mobile { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; gap: 5px; }
-    .input-panel-mobile button { width: 40px; height: 40px; font-size: 16px; }
+    .notes span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+    }
+    .input-panel-mobile {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 10px;
+      gap: 5px;
+    }
+    .input-panel-mobile button {
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
@@ -54,10 +105,20 @@
     </div>
     <div>錯誤次數：{{ errorCount }}</div>
     <div class="sudoku-board">
-      <div v-for="(cell, i) in board" :key="i"
-           class="cell"
-           @click="selectCell(i)"
-           :class="[{ readonly: cell.readonly }, { highlight: selectedIndex===i && cell.value }, { invalid: cell.invalid }, { valid: selectedIndex===i && cell.value && isValidCell(i) }, { hint: cell.hint }, { selected: selectedIndex===i }]">
+      <div
+        v-for="(cell, i) in board"
+        :key="i"
+        class="cell"
+        @click="selectCell(i)"
+        :class="[
+          { readonly: cell.readonly },
+          { highlight: selectedIndex === i && cell.value },
+          { invalid: cell.invalid },
+          { valid: selectedIndex === i && cell.value && isValidCell(i) },
+          { hint: cell.hint },
+          { selected: selectedIndex === i }
+        ]"
+      >
         <template v-if="cell.value">
           {{ cell.value }}
         </template>
@@ -80,9 +141,14 @@
     createApp({
       data() {
         return {
-          board: [], solution: [], noteMode: false,
-          selectedIndex: null, difficulty: 'medium', isMobile: false,
-          history: [], errorCount: 0
+          board: [],
+          solution: [],
+          noteMode: false,
+          selectedIndex: null,
+          difficulty: 'medium',
+          isMobile: false,
+          history: [],
+          errorCount: 0
         };
       },
       mounted() {
@@ -103,14 +169,23 @@
           const removeCount = this.difficulty === 'easy' ? 30 : this.difficulty === 'medium' ? 40 : 50;
           let cnt = 0;
           while (cnt < removeCount) {
-            const r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9);
-            if (puzzle[r][c] !== 0) { puzzle[r][c] = 0; cnt++; }
+            const r = Math.floor(Math.random() * 9);
+            const c = Math.floor(Math.random() * 9);
+            if (puzzle[r][c] !== 0) {
+              puzzle[r][c] = 0;
+              cnt++;
+            }
           }
           this.board = [];
           puzzle.flat().forEach((v, idx) => {
             this.board.push({
-              value: v ? v.toString() : '', readonly: v !== 0,
-              row: Math.floor(idx / 9), col: idx % 9, notes: [], hint: false, invalid: false
+              value: v ? v.toString() : '',
+              readonly: v !== 0,
+              row: Math.floor(idx / 9),
+              col: idx % 9,
+              notes: [],
+              hint: false,
+              invalid: false
             });
           });
           this.selectedIndex = null;
@@ -130,7 +205,7 @@
             for (let r = 0; r < 9; r++) {
               for (let c = 0; c < 9; c++) {
                 if (b[r][c] === 0) {
-                  const nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+                  const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
                   for (const n of nums) {
                     if (valid(b, r, c, n)) {
                       b[r][c] = n;
@@ -154,24 +229,46 @@
           if (this.selectedIndex === null) return;
           const cell = this.board[this.selectedIndex];
           if (cell.readonly) return;
-          this.history.push({ index: this.selectedIndex, prev: cell.value, prevNotes: [...cell.notes] });
-          if (this.noteMode) {
-            if (n === '') cell.notes = [];
-            else {
-              const num = Number(n);
-              const idx = cell.notes.indexOf(num);
-              if (idx === -1) cell.notes.push(num);
-              else cell.notes.splice(idx, 1);
-            }
-          } else {
-            cell.value = n.toString();
-            cell.notes = [];
-          }
-          this.validateBoard();
-          if (this.isComplete()) {
-            alert('恭喜完成數獨！');
-          }
-        },
+
+          this.history.push({
+            index: this.selectedIndex,
+                prev: cell.value,
+                prevNotes: [...cell.notes]
+              });
+
+              if (this.noteMode) {
+                if (n === '') cell.notes = [];
+                else {
+                  const num = Number(n);
+                  const idx = cell.notes.indexOf(num);
+                  if (idx === -1) cell.notes.push(num);
+                  else cell.notes.splice(idx, 1);
+                }
+              } else {
+                // 先記錄是否是清除操作
+                const isClearing = n === '';
+
+                cell.value = isClearing ? '' : n.toString();
+                cell.notes = [];
+
+                if (!isClearing) {
+                  const correctValue = this.solution[cell.row][cell.col].toString();
+                  if (cell.value !== correctValue) {
+                    cell.invalid = true;
+                    this.errorCount++; // 只有非清除且錯誤才累加
+                  } else {
+                    cell.invalid = false;
+                  }
+                } else {
+                  // 清除時不算錯誤，並移除標記
+                  cell.invalid = false;
+                }
+              }
+
+              if (this.isComplete()) {
+                alert('恭喜完成數獨！');
+              }
+            },
         undo() {
           const last = this.history.pop();
           if (last) {
@@ -200,7 +297,6 @@
           return this.board.every(cell => cell.value && !cell.invalid);
         },
         validateBoard() {
-          this.errorCount = 0;
           this.board.forEach((c, i) => {
             if (c.value && c.value !== this.solution[c.row][c.col].toString()) {
               c.invalid = true;
@@ -219,20 +315,11 @@
           const cell = this.board[idx];
           const correctValue = this.solution[cell.row][cell.col];
           cell.value = correctValue.toString();
-          cell.notes = [];
           cell.hint = true;
           cell.invalid = false;
-          setTimeout(() => {
-            cell.hint = false;
-          }, 2000);
-          this.validateBoard();
-          if (this.isComplete()) {
-            setTimeout(() => alert('恭喜完成數獨！'), 10);
-          }
         }
       }
     }).mount('#app');
   </script>
 </body>
 </html>
-
